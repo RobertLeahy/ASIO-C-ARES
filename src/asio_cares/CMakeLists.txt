@@ -1,4 +1,5 @@
 add_library(asio_cares
+	error.cpp
 )
 target_include_directories(asio_cares
 	PUBLIC
