@@ -1,4 +1,5 @@
 add_library(asio_cares
+	channel.cpp
 	error.cpp
 )
 target_include_directories(asio_cares
