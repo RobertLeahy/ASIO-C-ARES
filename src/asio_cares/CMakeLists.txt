@@ -1,0 +1,16 @@
+add_library(asio_cares
+)
+target_include_directories(asio_cares
+	PUBLIC
+		${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(asio_cares
+	PUBLIC
+		Asio
+		Beast
+		Boost::boost
+		Boost::system
+		CARES
+		MParkVariant
+)
+add_subdirectory(tests)

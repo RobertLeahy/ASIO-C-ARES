@@ -1,0 +1,12 @@
+image: Visual Studio 2017
+install:
+    -   ps: mkdir C:/ASIO-CARES
+    -   ps: ./.appveyor/boost.ps1
+    -   ps: ./.appveyor/cares.ps1
+build_script:
+    -   mkdir build
+    -   cd build
+    -   cmake .. -G "Visual Studio 15 2017 Win64" -DBOOST_ROOT=C:/ASIO-CARES/boost_1_64_0 -DBOOST_INCLUDEDIR=C:/ASIO-CARES/boost_1_64_0 -DBOOST_LIBRARYDIR=C:/ASIO-CARES/boost_1_64_0/stage/lib -DBoost_USE_STATIC_LIBS=On "-DCMAKE_CXX_FLAGS=/D_WIN32_WINNT=0x0A00 /DWINVER=0x0A00 /EHsc" -DCARES_LIBRARY=C:/ASIO-CARES/c-ares-master/build/lib/Release/cares.lib -DCARES_INCLUDE_DIR=C:/ASIO-CARES/c-ares-master
+    -   cmake --build . --config Release
+test_script:
+    -   ctest -VV -C Release
