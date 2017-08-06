@@ -7,6 +7,7 @@
 #include <ares.h>
 #include <asio_cares/channel.hpp>
 #include <asio_cares/detail/select.hpp>
+#include <asio_cares/done.hpp>
 #include <beast/core/async_result.hpp>
 #include <boost/asio/handler_alloc_hook.hpp>
 #include <boost/asio/handler_continuation_hook.hpp>
@@ -21,7 +22,7 @@ namespace asio_cares {
 
 namespace detail {
 
-using async_process_one_signature = void (boost::system::error_code);
+using async_process_one_signature = void (boost::system::error_code, bool);
 
 template <typename Handler>
 class async_process_one_op {
@@ -38,7 +39,10 @@ public:
 	{}
 	void operator () (boost::system::error_code ec, ares_socket_t readable, ares_socket_t writable) {
 		if (!ec) ares_process_fd(channel_, readable, writable);
-		inner_(ec);
+		inner_(ec, done(channel_));
+	}
+	void operator () () {
+		inner_(boost::system::error_code{}, true);
 	}
 	friend void * asio_handler_allocate (std::size_t num, async_process_one_op * self) {
 		assert(self);
@@ -59,7 +63,7 @@ public:
 	friend bool asio_handler_is_continuation (async_process_one_op * self) {
 		assert(self);
 		using boost::asio::asio_handler_is_continuation;
-		asio_handler_is_continuation(std::addressof(self->inner_));
+		return asio_handler_is_continuation(std::addressof(self->inner_));
 	}
 private:
 	Handler   inner_;
@@ -72,6 +76,12 @@ private:
  *	Asynchronously calls `ares_process` or
  *	`ares_process_fd` (which is actually called is
  *	an implementation detail) once.
+ *
+ *	It is perfectly safe to invoke this function
+ *	on a \ref channel with no outstanding queries.
+ *	The completion handler will simply be dispatched
+ *	immediately, without error, and with its second
+ *	argument set to `true`.
  *
  *	\tparam CompletionToken
  *		A type which represents the action to take
@@ -88,9 +98,12 @@ private:
  *		The token which encapsulates the action to
  *		take upon completion of the asynchronous
  *		operation. The completion of this asynchronous
- *		operation generates one value of type
- *		`boost::system::error_code` which represents
- *		the result of the operation.
+ *		operation generates two values: The first is
+ *		of type `boost::system::error_code` and
+ *		represents the result of the operation. The
+ *		second is the result of calling \ref done
+ *		on \em c after `ares_process` or `ares_process_fd`
+ *		was invoked.
  *
  *	\return
  *		Whatever is appropriate given \em CompletionToken.
@@ -101,7 +114,8 @@ auto async_process_one (channel & c, CompletionToken && token) {
 	detail::async_process_one_op<beast::handler_type<CompletionToken,
 		                                             detail::async_process_one_signature>> op(std::move(init.completion_handler),
 														                                      c);
-	detail::async_select(c, std::move(op));
+	if (done(c)) c.get_strand().post(std::move(op));
+	else detail::async_select(c, std::move(op));
 	return init.result.get();
 }
 

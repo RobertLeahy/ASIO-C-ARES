@@ -56,11 +56,13 @@ SCENARIO("asio_cares::async_process_one may be used to incrementally and asynchr
 			REQUIRE_FALSE(s.invoked);
 			REQUIRE_FALSE(done(c));
 			WHEN("asio_cares::async_process_one is invoked until asio_cares::done reports that the query has completed") {
+				bool done = false;
 				do {
 					boost::system::error_code ec;
 					bool invoked = false;
-					async_process_one(c, [&] (auto e) noexcept {
+					async_process_one(c, [&] (auto e, auto d) noexcept {
 						ec = e;
+						done = d;
 						invoked = true;
 					});
 					ios.run();
@@ -68,12 +70,29 @@ SCENARIO("asio_cares::async_process_one may be used to incrementally and asynchr
 					INFO(ec.message());
 					REQUIRE_FALSE(ec);
 					ios.reset();
-				} while (!done(c));
+				} while (!done);
 				THEN("The query completes successfully") {
 					REQUIRE(s.invoked);
 					INFO(s.error_code.message());
 					CHECK_FALSE(s.error_code);
 				}
+			}
+		}
+		WHEN("asio_cares::async_process_one is invoked thereupon") {
+			boost::system::error_code ec;
+			bool invoked = false;
+			bool done = false;
+			async_process_one(c, [&] (auto e, auto d) noexcept {
+				ec = e;
+				invoked = true;
+				done = d;
+			});
+			ios.run();
+			THEN("The operation completes successfully") {
+				REQUIRE(invoked);
+				INFO(ec.message());
+				REQUIRE_FALSE(ec);
+				CHECK(done);
 			}
 		}
 	}
