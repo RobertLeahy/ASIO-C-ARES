@@ -2,6 +2,7 @@ add_library(asio_cares
 	channel.cpp
 	error.cpp
 	library.cpp
+	string.cpp
 )
 target_include_directories(asio_cares
 	PUBLIC
