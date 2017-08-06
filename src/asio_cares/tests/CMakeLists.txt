@@ -1,5 +1,6 @@
 add_executable(asio_cares_tests
 	detail/select.cpp
+	done.cpp
 	error.cpp
 	main.cpp
 )
