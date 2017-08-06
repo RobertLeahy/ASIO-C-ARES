@@ -3,6 +3,7 @@ add_executable(asio_cares_tests
 	done.cpp
 	error.cpp
 	main.cpp
+	process.cpp
 	process_one.cpp
 )
 target_link_libraries(asio_cares_tests
