@@ -97,7 +97,13 @@ boost::asio::deadline_timer & channel::get_timer () noexcept {
 }
 
 channel::socket_type & channel::get_socket (ares_socket_t socket) noexcept {
+	#ifndef NDEBUG
+	auto retr = find(socket);
+	assert(retr != sockets_.end());
+	return *retr;
+	#else
 	return *insertion_point(socket);
+	#endif
 }
 
 channel::operator ares_channel () noexcept {
