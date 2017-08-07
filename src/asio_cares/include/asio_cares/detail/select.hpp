@@ -108,8 +108,7 @@ private:
 			bool writable = ARES_GETSOCK_WRITABLE(ptr_->flags, i);
 			if (!(readable || writable)) continue;
 			auto ares_socket = ptr_->sockets[i];
-			auto && socket = ptr_->channel.get_socket(ares_socket);
-			mpark::visit([&] (auto & socket) {
+			ptr_->channel.acquire_socket(ares_socket).unwrap([&] (auto & socket) {
 				boost::asio::null_buffers buffers;
 				auto && strand = ptr_->channel.get_strand();
 				if (readable) {
@@ -122,7 +121,7 @@ private:
 					socket.async_send(buffers, strand.wrap(std::move(w)));
 					++ptr_->pending;
 				}
-			}, socket);
+			});
 		}
 		struct timeval tv;
 		if (ares_timeout(ptr_->channel, nullptr, &tv)) {
