@@ -96,18 +96,17 @@ boost::asio::deadline_timer & channel::get_timer () noexcept {
 	return timer_;
 }
 
-channel::socket_type & channel::get_socket (ares_socket_t socket) noexcept {
-	#ifndef NDEBUG
-	auto retr = find(socket);
-	assert(retr != sockets_.end());
-	return *retr;
-	#else
-	return *insertion_point(socket);
-	#endif
-}
+channel::socket_guard::socket_guard (socket_type & socket, channel & c) noexcept
+	:	socket_ (&socket),
+		channel_(&c)
+{}
 
-channel::operator ares_channel () noexcept {
-	return channel_;
+channel::socket_guard::socket_guard (socket_guard && other) noexcept
+	:	socket_ (other.socket_),
+		channel_(other.channel_)
+{
+	other.socket_ = nullptr;
+	other.channel_ = nullptr;
 }
 
 static int get_fd (int fd) noexcept {
@@ -118,8 +117,8 @@ static int get_fd (ares_socket_t fd) noexcept {
 	return int(fd);
 }
 
-template <typename Variant>
-static int get_fd (const Variant & v) noexcept {
+template <typename... Args>
+static int get_fd (const mpark::variant<Args...> & v) noexcept {
 	return mpark::visit([] (const auto & socket) noexcept -> int {
 		//	For some reason ::native is not const
 		using no_reference_type = std::remove_reference_t<decltype(socket)>;
@@ -127,6 +126,40 @@ static int get_fd (const Variant & v) noexcept {
 		auto & mutable_socket = const_cast<no_const_type &>(socket);
 		return int(mutable_socket.native());
 	}, v);
+}
+
+template <typename T>
+static int get_fd (const T & state) noexcept {
+	return get_fd(state.socket);
+}
+
+channel::socket_guard::~socket_guard () noexcept {
+	if (socket_ && channel_) channel_->release_socket(get_fd(*socket_));
+}
+
+channel::socket_guard channel::acquire_socket (ares_socket_t socket) noexcept {
+	auto retr = find(socket);
+	assert(!retr->acquired);
+	assert(!retr->closed);
+	retr->acquired = true;
+	return socket_guard(retr->socket, *this);
+}
+
+channel::operator ares_channel () noexcept {
+	return channel_;
+}
+
+channel::socket_state::socket_state (socket_type socket)
+	:	socket  (std::move(socket)),
+		acquired(false),
+		closed  (false)
+{}
+
+void channel::release_socket (int fd) noexcept {
+	auto iter = find(fd);
+	assert(iter->acquired);
+	iter->acquired = false;
+	if (iter->closed) sockets_.erase(iter);
 }
 
 template <typename T>
@@ -144,9 +177,9 @@ channel::sockets_collection_type::iterator channel::insertion_point (const T & k
 template <typename T>
 channel::sockets_collection_type::iterator channel::find (const T & key) noexcept {
 	auto retr = insertion_point(key);
-	if (retr == sockets_.end()) return retr;
-	if (get_fd(*retr) == get_fd(key)) return retr;
-	return sockets_.end();
+	assert(retr != sockets_.end());
+	assert(get_fd(*retr) == get_fd(key));
+	return retr;
 }
 
 boost::asio::ip::tcp::socket channel::tcp_socket (bool is_v6, boost::system::error_code & ec) noexcept {
@@ -223,7 +256,7 @@ ares_socket_t channel::socket (int domain, int type, int protocol, void * user_d
 	ares_socket_t retr(get_fd(socket));
 	auto loc = self.insertion_point(socket);
 	try {
-		self.sockets_.insert(loc, std::move(socket));
+		self.sockets_.insert(loc, socket_state(std::move(socket)));
 	} catch (...) {
 		errno = ENOMEM;
 		return -1;
@@ -235,8 +268,9 @@ ares_socket_t channel::socket (int domain, int type, int protocol, void * user_d
 int channel::close (ares_socket_t fd, void * user_data) noexcept {
 	auto & self = *static_cast<channel *>(user_data);
 	auto iter = self.find(fd);
-	assert(iter != self.sockets_.end());
-	self.sockets_.erase(iter);
+	assert(!iter->closed);
+	iter->closed = true;
+	if (!iter->acquired) self.sockets_.erase(iter);
 	errno = 0;
 	return 0;
 }

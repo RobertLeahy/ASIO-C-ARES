@@ -12,6 +12,7 @@
 #include <boost/asio/ip/udp.hpp>
 #include <boost/system/error_code.hpp>
 #include <mpark/variant.hpp>
+#include <utility>
 #include <vector>
 
 namespace asio_cares {
@@ -86,34 +87,75 @@ public:
 	 *		A reference to a `deadline_timer`.
 	 */
 	boost::asio::deadline_timer & get_timer () noexcept;
-	/**
-	 *	The type used to represent a socket.
-	 *
-	 *	Note that libcares sockets may be either
-	 *	UDP or TCP and therefore this value is
-	 *	a variant which may be distilled to a
-	 *	single value of a single type through
-	 *	the use of `mpark::visit`.
-	 */
+private:
 	using socket_type = mpark::variant<boost::asio::ip::tcp::socket, boost::asio::ip::udp::socket>;
+	template <typename Function>
+	static constexpr auto is_nothrow_invocable = noexcept(std::declval<Function>()(std::declval<boost::asio::ip::tcp::socket &>())) &&
+	                                             noexcept(std::declval<Function>()(std::declval<boost::asio::ip::udp::socket &>()));
+public:
 	/**
-	 *	Retrieves a Boost.Asio socket object
-	 *	corresponding to a certain libcares
-	 *	socket.
+	 *	The type used to represent a socket when
+	 *	it is acquired.
 	 *
-	 *	If the libcares socket is not associated
-	 *	with the underlying channel managed by
-	 *	this object the behavior is undefined.
+	 *	In addition to making a certain socket
+	 *	accessible alse releases the socket back
+	 *	to the associated \ref channel once its
+	 *	lifetime ends.
+	 */
+	class socket_guard {
+	public:
+		socket_guard () = delete;
+		socket_guard (const socket_guard &) = delete;
+		socket_guard & operator = (const socket_guard &) = delete;
+		socket_guard & operator = (socket_guard &&) = delete;
+		socket_guard (socket_type &, channel &) noexcept;
+		socket_guard (socket_guard &&) noexcept;
+		~socket_guard () noexcept;
+		/**
+		 *	Provides access to the underlying Boost.Asio
+		 *	socket object by invoking a provided function
+		 *	object with the socket as its sole argument.
+		 *
+		 *	Since libcares sockets may be TCP or UDP
+		 *	the provided function object must accept
+		 *	either `boost::asio::ip::tcp::socket` or
+		 *	`boost::asio::ip::udp::socket`.
+		 *
+		 *	\tparam Function
+		 *		The type of function object.
+		 *
+		 *	\param [in] function
+		 *		The function object.
+		 */
+		template <typename Function>
+		void unwrap (Function && function) noexcept(is_nothrow_invocable<Function>) {
+			assert(socket_);
+			mpark::visit(function, *socket_);
+		}
+	private:
+		socket_type * socket_;
+		channel *     channel_;
+	};
+	/**
+	 *	Acquires a socket.
+	 *
+	 *	Acquiring a socket which has already been acquired
+	 *	and not yet released results in undefined behavior.
+	 *
+	 *	Once a socket has been acquired it cannot be closed
+	 *	by libcares until it is released. If libcares attempts
+	 *	to close it while it is acquired the closure shall be
+	 *	deferred until it is released.
 	 *
 	 *	\param [in] socket
-	 *		The socket handle from libcares.
+	 *		The libcares handle for the socket to acquire.
 	 *
 	 *	\return
-	 *		A reference to a \ref socket_type
-	 *		representing the socket referred to
-	 *		by \em socket.
+	 *		A \ref socket_guard which shall release the
+	 *		socket when it goes out of scope and through
+	 *		which the socket may be accessed.
 	 */
-	socket_type & get_socket (ares_socket_t socket) noexcept;
+	socket_guard acquire_socket (ares_socket_t socket) noexcept;
 	/**
 	 *	Retrieves the managed `ares_channel` object.
 	 *
@@ -122,7 +164,20 @@ public:
 	 */
 	operator ares_channel () noexcept;
 private:
-	using sockets_collection_type = std::vector<socket_type>;
+	class socket_state {
+	public:
+		socket_state () = delete;
+		socket_state (const socket_state &) = delete;
+		socket_state (socket_state &&) = default;
+		socket_state & operator = (const socket_state &) = delete;
+		socket_state & operator = (socket_state &&) = default;
+		explicit socket_state (socket_type);
+		socket_type socket;
+		bool        acquired;
+		bool        closed;
+	};
+	void release_socket (int) noexcept;
+	using sockets_collection_type = std::vector<socket_state>;
 	template <typename T>
 	sockets_collection_type::iterator insertion_point (const T &) noexcept;
 	template <typename T>
