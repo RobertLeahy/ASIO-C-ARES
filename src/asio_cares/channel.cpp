@@ -113,9 +113,11 @@ static int get_fd (int fd) noexcept {
 	return fd;
 }
 
+#ifdef _WIN32
 static int get_fd (ares_socket_t fd) noexcept {
 	return int(fd);
 }
+#endif
 
 template <typename... Args>
 static int get_fd (const mpark::variant<Args...> & v) noexcept {
