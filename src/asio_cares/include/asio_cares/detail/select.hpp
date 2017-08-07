@@ -157,16 +157,12 @@ private:
 	}
 	void cancel () noexcept {
 		if (ptr_->cancelled) return;
+		ptr_->channel.for_each_socket([&] (auto & socket) noexcept {
+			boost::system::error_code ec;
+			socket.cancel(ec);
+			this->set_error(ec);
+		});
 		boost::system::error_code ec;
-		for (std::size_t i = 0; i < ARES_GETSOCK_MAXNUM; ++i) {
-			if (!(ARES_GETSOCK_READABLE(ptr_->flags, i) ||
-				  ARES_GETSOCK_WRITABLE(ptr_->flags, i))) continue;
-			auto && socket = ptr_->channel.get_socket(ptr_->sockets[i]);
-			ec.clear();
-			mpark::visit([&] (auto & socket) noexcept {	socket.cancel(ec);	}, socket);
-			set_error(ec);
-		}
-		ec.clear();
 		ptr_->channel.get_timer().cancel(ec);
 		set_error(ec);
 		ptr_->cancelled = true;
