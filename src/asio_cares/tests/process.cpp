@@ -8,6 +8,7 @@
 #include <asio_cares/string.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/system/error_code.hpp>
+#include "setup.hpp"
 #include <catch.hpp>
 
 #ifdef _WIN32
@@ -25,6 +26,7 @@ SCENARIO("asio_cares::async_process may be used to asynchronously complete a DNS
 		library l;
 		boost::asio::io_service ios;
 		channel c(ios);
+		setup(c);
 		WHEN("A query is sent thereupon") {
 			unsigned char * ptr;
 			int buflen;

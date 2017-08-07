@@ -1,5 +1,6 @@
 #include <asio_cares/detail/select.hpp>
 
+#include "../setup.hpp"
 #include <ares.h>
 #include <asio_cares/channel.hpp>
 #include <asio_cares/error.hpp>
@@ -25,6 +26,7 @@ SCENARIO("asio_cares::detail::async_select may be used to wait for readability o
 		library l;
 		boost::asio::io_service ios;
 		channel c(ios);
+		setup(c);
 		WHEN("A query is sent thereupon") {
 			unsigned char * ptr;
 			int buflen;

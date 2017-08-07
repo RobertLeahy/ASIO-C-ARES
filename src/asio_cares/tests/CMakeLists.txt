@@ -7,6 +7,7 @@ add_executable(asio_cares_tests
 	process.cpp
 	process_one.cpp
 	send.cpp
+	setup.cpp
 )
 target_link_libraries(asio_cares_tests
 	asio_cares

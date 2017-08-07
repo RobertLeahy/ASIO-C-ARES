@@ -5,6 +5,7 @@
 #include <asio_cares/library.hpp>
 #include <asio_cares/string.hpp>
 #include <boost/asio/io_service.hpp>
+#include "setup.hpp"
 #include <catch.hpp>
 
 #ifdef _WIN32
@@ -22,6 +23,7 @@ SCENARIO("asio_cares::done correctly determines whether there are outstanding qu
 		library l;
 		boost::asio::io_service ios;
 		channel c(ios);
+		setup(c);
 		THEN("asio_cares::done reports there are no outstanding queries") {
 			CHECK(done(c));
 		}

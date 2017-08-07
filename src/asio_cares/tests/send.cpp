@@ -9,6 +9,7 @@
 #include <asio_cares/string.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/system/error_code.hpp>
+#include "setup.hpp"
 #include <stdexcept>
 #include <catch.hpp>
 
@@ -27,6 +28,7 @@ SCENARIO("asio_cares::async_send may be used to submit a DNS query for asynchron
 		library l;
 		boost::asio::io_service ios;
 		channel c(ios);
+		setup(c);
 		WHEN("A query is sent with asio_cares::async_send") {
 			unsigned char * ptr;
 			int buflen;
