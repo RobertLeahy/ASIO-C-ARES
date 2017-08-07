@@ -1,4 +1,5 @@
 add_library(asio_cares
+	cancel.cpp
 	channel.cpp
 	done.cpp
 	error.cpp
