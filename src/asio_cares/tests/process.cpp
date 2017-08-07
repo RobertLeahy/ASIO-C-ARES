@@ -55,7 +55,7 @@ SCENARIO("asio_cares::async_process may be used to asynchronously complete a DNS
 			ares_send(c, ptr, buflen, f, &s);
 			REQUIRE_FALSE(s.invoked);
 			REQUIRE_FALSE(done(c));
-			WHEN("asio_cares::async_process is invoked") {
+			AND_WHEN("asio_cares::async_process is invoked") {
 				boost::system::error_code ec;
 				bool invoked = false;
 				async_process(c, [&] (auto e) noexcept {
