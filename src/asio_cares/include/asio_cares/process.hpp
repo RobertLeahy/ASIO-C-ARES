@@ -5,7 +5,6 @@
 #pragma once
 
 #include <asio_cares/channel.hpp>
-#include <asio_cares/done.hpp>
 #include <asio_cares/process_one.hpp>
 #include <beast/core/async_result.hpp>
 #include <boost/asio/handler_alloc_hook.hpp>
@@ -36,8 +35,8 @@ public:
 		:	inner_  (std::forward<DeducedHandler>(h)),
 			channel_(c)
 	{}
-	void operator () (boost::system::error_code ec) {
-		if (ec || done(channel_)) inner_(ec);
+	void operator () (boost::system::error_code ec, bool done) {
+		if (ec || done) inner_(ec);
 		else begin();
 	}
 	void begin () {
@@ -78,6 +77,11 @@ private:
  *	`ares_process_fd` (which is actually called
  *	is an implementation detail) until
  *	\ref done returns `true`.
+ *
+ *	It is perfectly safe to invoke this function
+ *	on a \ref channel with no outstanding queries.
+ *	The completion handler will simply be dispatched
+ *	immediately and without error.
  *
  *	\tparam CompletionToken
  *		A type which represents the action to take

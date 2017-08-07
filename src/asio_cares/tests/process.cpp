@@ -73,6 +73,20 @@ SCENARIO("asio_cares::async_process may be used to asynchronously complete a DNS
 				}
 			}
 		}
+		WHEN("asio_cares::async_process is invoked thereupon") {
+			boost::system::error_code ec;
+			bool invoked = false;
+			async_process(c, [&] (auto e) noexcept {
+				ec = e;
+				invoked = true;
+			});
+			ios.run();
+			THEN("The operation completes successfully") {
+				REQUIRE(invoked);
+				INFO(ec.message());
+				CHECK_FALSE(ec);
+			}
+		}
 	}
 }
 

@@ -55,7 +55,7 @@ SCENARIO("asio_cares::async_process_one may be used to incrementally and asynchr
 			ares_send(c, ptr, buflen, f, &s);
 			REQUIRE_FALSE(s.invoked);
 			REQUIRE_FALSE(done(c));
-			WHEN("asio_cares::async_process_one is invoked until asio_cares::done reports that the query has completed") {
+			AND_WHEN("asio_cares::async_process_one is invoked until asio_cares::done reports that the query has completed") {
 				bool done = false;
 				do {
 					boost::system::error_code ec;
