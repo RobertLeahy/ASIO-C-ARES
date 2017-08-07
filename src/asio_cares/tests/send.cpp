@@ -43,7 +43,7 @@ SCENARIO("asio_cares::async_send may be used to submit a DNS query for asynchron
 			bool invoked = false;
 			ares_addrttl addrttls [16];
 			int naddrttls = 16;
-			async_send(c, ptr, buflen, [&] (auto e, auto ts, auto buf, auto len) noexcept {
+			async_send(c, ptr, buflen, [&] (auto e, auto ts, auto buf, auto len) {
 				ec = e;
 				invoked = true;
 				REQUIRE(ares_parse_a_reply(buf, len, nullptr, addrttls, &naddrttls) == ARES_SUCCESS);
