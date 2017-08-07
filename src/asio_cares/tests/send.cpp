@@ -9,6 +9,7 @@
 #include <asio_cares/string.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/system/error_code.hpp>
+#include <stdexcept>
 #include <catch.hpp>
 
 #ifdef _WIN32
@@ -108,6 +109,30 @@ SCENARIO("asio_cares::async_send may be used to submit a DNS query for asynchron
 					THEN("There are no pending queries on the channel") {
 						CHECK(done(c));
 					}
+				}
+			}
+		}
+		WHEN("A query is sent with asio_cares::async_send the completion handler for which throws") {
+			unsigned char * ptr;
+			int buflen;
+			int result = ares_create_query("google.com",
+				                           ns_c_any,
+				                           ns_t_a,
+				                           0,
+				                           1,
+				                           &ptr,
+				                           &buflen,
+				                           0);
+			raise(result);
+			string g(ptr);
+			async_send(c, ptr, buflen, [&] (auto, auto, auto, auto) {
+				throw std::runtime_error("Test");
+			});
+			REQUIRE_FALSE(done(c));
+			AND_WHEN("asio_cares::async_process is invoked") {
+				async_process(c, [&] (auto) noexcept {});
+				THEN("When boost::io_service::run is invoked the exception is thrown therefrom") {
+					CHECK_THROWS_AS(ios.run(), std::runtime_error);
 				}
 			}
 		}

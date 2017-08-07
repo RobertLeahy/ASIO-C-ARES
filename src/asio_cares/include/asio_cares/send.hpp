@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
+#include <exception>
 #include <memory>
 #include <new>
 #include <type_traits>
@@ -111,7 +112,7 @@ public:
 	async_send_state (async_send_state &&) = delete;
 	async_send_state & operator = (const async_send_state &) = delete;
 	async_send_state & operator = (async_send_state &&) = delete;
-	static async_send_state * create (Handler h, channel & c) {
+	static async_send_state * create (Handler h, asio_cares::channel & c) {
 		allocator alloc(h);
 		async_send_state * retr = allocator_traits::allocate(alloc, 1);
 		try {
@@ -143,8 +144,11 @@ public:
 		assert(in_);
 		in_ = false;
 	}
+	asio_cares::channel & channel () noexcept {
+		return c_;
+	}
 private:
-	async_send_state (Handler h, channel & c) noexcept(
+	async_send_state (Handler h, asio_cares::channel & c) noexcept(
 		std::is_nothrow_move_constructible<Handler>::value
 	)	:	h_ (std::move(h)),
 			c_ (c),
@@ -162,6 +166,20 @@ private:
 	asio_cares::channel & c_;
 	bool                  in_;
 };
+
+template <typename Function>
+void async_send_wrap (channel & c, Function && function) noexcept {
+	try {
+		function();
+	} catch (...) {
+		//	If this throws we're just done, it
+		//	goes into noexcept and the process
+		//	dies
+		c.get_io_service().post([ex = std::current_exception()] () mutable {
+			std::rethrow_exception(std::move(ex));
+		});
+	}
+}
 
 }
 
@@ -248,7 +266,9 @@ auto async_send (channel & c, const unsigned char * qbuf, int qlen, CompletionTo
 	auto state = state_type::create(std::move(init.completion_handler), c);
 	ares_send(c, qbuf, qlen, [] (void * arg, int status, int timeouts, unsigned char * abuf, int alen) {
 		auto state = static_cast<state_type *>(arg);
-		state->complete(status, timeouts, abuf, alen);
+		detail::async_send_wrap(state->channel(), [&] () {
+			state->complete(status, timeouts, abuf, alen);
+		});
 	}, state);
 	state->detach();
 	return init.result.get();
