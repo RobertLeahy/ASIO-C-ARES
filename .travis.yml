@@ -12,7 +12,6 @@ matrix:
                         -   ubuntu-toolchain-r-test
                     packages:
                         -   g++-6
-                        -   libc-ares-dev
         -   &clang
             os: linux
             env: COMPILER=clang BOOST_MINOR=64
@@ -23,7 +22,6 @@ matrix:
                     packages:
                         -   clang-4.0
                         -   libc++-dev
-                        -   libc-ares-dev
         -   <<: *gcc
             env: COMPILER=gcc BOOST_MINOR=63
         -   <<: *clang
@@ -54,7 +52,8 @@ script:
     -   if [ ${COMPILER} = "gcc" ]; then sudo ../.travis/gcc.sh; export CXX=g++; fi
     -   if [ ${COMPILER} = "clang" ]; then sudo ../.travis/clang.sh; export CXX=clang++; export CXXFLAGS=-stdlib=libc++; fi
     -   ../.travis/boost.sh ${COMPILER} ${BOOST_MINOR}
+    -   ../.travis/cares.sh
     -   ../.travis/cmake.sh
-    -   ./cmake/bin/cmake .. -DCMAKE_BUILD_TYPE=Release -DBOOST_ROOT="$(pwd)/boost/boost_1_${BOOST_MINOR}_0" -DBOOST_INCLUDEDIR="$(pwd)/boost/boost_1_${BOOST_MINOR}_0" -DBOOST_LIBRARYDIR="$(pwd)/boost/boost_1_${BOOST_MINOR}_0/stage/lib"
+    -   ./cmake/bin/cmake .. -DCMAKE_BUILD_TYPE=Release -DBOOST_ROOT="$(pwd)/boost/boost_1_${BOOST_MINOR}_0" -DBOOST_INCLUDEDIR="$(pwd)/boost/boost_1_${BOOST_MINOR}_0" -DBOOST_LIBRARYDIR="$(pwd)/boost/boost_1_${BOOST_MINOR}_0/stage/lib" -DCARES_LIBRARY="$(pwd)/cares/c-ares-master/build/lib/libcares.a" -DCARES_INCLUDE_DIR="$(pwd)/cares/c-ares-master"
     -   ./cmake/bin/cmake --build .
     -   ./cmake/bin/ctest -VV
