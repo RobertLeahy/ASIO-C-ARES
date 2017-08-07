@@ -163,6 +163,25 @@ public:
 	 *		An `ares_channel` object.
 	 */
 	operator ares_channel () noexcept;
+	/**
+	 *	Invokes a certain function object for each
+	 *	socket currently in use by the channel.
+	 *
+	 *	Due to the fact libcares uses both TCP and
+	 *	UDP sockets the provided function object must
+	 *	be invocable with both `boost::asio::ip::tcp::socket`
+	 *	and `boost::asio::ip::udp::socket` objects.
+	 *
+	 *	\tparam Function
+	 *		The type of function object to invoke.
+	 *
+	 *	\param [in] function
+	 *		The function object to invoke.
+	 */
+	template <typename Function>
+	void for_each_socket (Function && function) noexcept(is_nothrow_invocable<Function>) {
+		for (auto && state : sockets_) mpark::visit(function, state.socket);
+	}
 private:
 	class socket_state {
 	public:
