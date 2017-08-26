@@ -30,12 +30,12 @@ static int connect (ares_socket_t fd, const struct sockaddr * addr, ares_socklen
 }
 
 static ares_ssize_t recvfrom (ares_socket_t fd,
-	                          void * buffer,
-	                          std::size_t buf_size,
-	                          int flags,
-	                          struct sockaddr * addr,
-	                          ares_socklen_t * addr_len,
-	                          void *) noexcept
+                              void * buffer,
+                              std::size_t buf_size,
+                              int flags,
+                              struct sockaddr * addr,
+                              ares_socklen_t * addr_len,
+                              void *) noexcept
 {
 	char * cbuffer = static_cast<char *>(buffer);
 	return ::recvfrom(fd, cbuffer, buf_size, flags, addr, addr_len);

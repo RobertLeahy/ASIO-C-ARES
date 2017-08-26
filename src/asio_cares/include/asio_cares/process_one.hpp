@@ -35,7 +35,7 @@ public:
 	template <typename DeducedHandler>
 	async_process_one_op (DeducedHandler && h, channel & c)
 		:	inner_  (std::forward<DeducedHandler>(h)),
-		    channel_(c)
+			channel_(c)
 	{}
 	void operator () (boost::system::error_code ec, ares_socket_t readable, ares_socket_t writable) {
 		if (!ec) ares_process_fd(channel_, readable, writable);
@@ -112,8 +112,8 @@ template <typename CompletionToken>
 auto async_process_one (channel & c, CompletionToken && token) {
 	beast::async_completion<CompletionToken, detail::async_process_one_signature> init(token);
 	detail::async_process_one_op<beast::handler_type<CompletionToken,
-		                                             detail::async_process_one_signature>> op(std::move(init.completion_handler),
-														                                      c);
+	                                                 detail::async_process_one_signature>> op(std::move(init.completion_handler),
+	                                                                                          c);
 	if (done(c)) c.get_strand().post(std::move(op));
 	else detail::async_select(c, std::move(op));
 	return init.result.get();

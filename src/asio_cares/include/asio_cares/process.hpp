@@ -109,8 +109,8 @@ template <typename CompletionToken>
 auto async_process (channel & c, CompletionToken && token) {
 	beast::async_completion<CompletionToken, detail::async_process_signature> init(token);
 	detail::async_process_op<beast::handler_type<CompletionToken,
-		                                         detail::async_process_signature>> op(std::move(init.completion_handler),
-													                                  c);
+	                                             detail::async_process_signature>> op(std::move(init.completion_handler),
+	                                                                                  c);
 	op.begin();
 	return init.result.get();
 }

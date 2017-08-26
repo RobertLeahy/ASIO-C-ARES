@@ -243,7 +243,7 @@ template <typename CompletionToken>
 auto async_select (channel & c, CompletionToken && token) {
 	beast::async_completion<CompletionToken, async_select_signature> init(token);
 	async_select_op<beast::handler_type<CompletionToken,
-		                                async_select_signature>> op(std::move(init.completion_handler), c);
+	                                    async_select_signature>> op(std::move(init.completion_handler), c);
 	op.begin();
 	return init.result.get();
 }
