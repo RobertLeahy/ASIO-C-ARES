@@ -5,7 +5,7 @@ matrix:
     include:
         -   &gcc
             os: linux
-            env: COMPILER=gcc BOOST_MINOR=64
+            env: COMPILER=gcc BOOST_MINOR=65
             addons:
                 apt:
                     sources:
@@ -14,7 +14,7 @@ matrix:
                         -   g++-6
         -   &clang
             os: linux
-            env: COMPILER=clang BOOST_MINOR=64
+            env: COMPILER=clang BOOST_MINOR=65
             addons:
                 apt:
                     sources:
@@ -22,6 +22,10 @@ matrix:
                     packages:
                         -   clang-4.0
                         -   libc++-dev
+        -   <<: *gcc
+            env: COMPILER=gcc BOOST_MINOR=64
+        -   <<: *clang
+            env: COMPILER=clang BOOST_MINOR=64
         -   <<: *gcc
             env: COMPILER=gcc BOOST_MINOR=63
         -   <<: *clang
